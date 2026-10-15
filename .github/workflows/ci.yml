@@ -26,5 +26,5 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - name: Accessibility audit (axe in a real browser, 11 screen states, fake API data)
+      - name: Accessibility audit (axe in a real browser, 15 screen states, fake API data)
         run: npm run a11y-audit

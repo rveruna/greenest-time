@@ -4,7 +4,7 @@
 
 **[Live demo](https://rveruna.github.io/greenest-time/)** (the web build of the same React Native code)
 
-[![The app loads the 48-hour carbon forecast, the bar chart grows in with the cleanest 2-hour window outlined, then switching to 4 hours and 1 hour moves the outline and updates the start time and saving](docs/demo.gif)](https://rveruna.github.io/greenest-time/)
+[![A postcode, EH1, switches the forecast to South Scotland; choosing 4 hours moves the outlined cleanest window to 20:00 to 00:00, 84% cleaner than now; Add to calendar confirms the event was downloaded, and the chart below shows the outlined window (recorded with sample forecast data)](docs/demo.gif)](https://rveruna.github.io/greenest-time/)
 
 When is your electricity cleanest? Pick how long your washing machine, dishwasher or EV charger runs for, and the app finds the cleanest window in the next 48 hours for your part of the grid, how long to wait for it, and how much cleaner it is than starting now. Then it reminds you when it's time.
 
@@ -27,7 +27,7 @@ Built with Expo, React Native and TypeScript. Data comes from the free [Carbon I
 - **Reduced motion is respected.** The card entrance and the bar growth both switch off with the OS setting, using Reanimated's `useReducedMotion`.
 - **Accessible controls.** The duration picker is a radio group with 44pt touch targets and an announced selected state. The result card is a live region, so a change is read out.
 - **One feature, two platforms, no pretending.** `src/reminders/` has `index.native.ts` (expo-notifications) and `index.ts` (web calendar file) behind one interface, and Metro picks the right one per platform. The web demo says "Add to calendar", not "Remind me", because that is what it can actually do.
-- **Privacy by design.** `outwardCode()` reduces any postcode to its outward half before it is stored or sent. A browser test confirms that typing "EH1 1AA" sends only `EH1`.
+- **Privacy by design.** `outwardCode()` reduces any postcode to its outward half before it is stored or sent. The accessibility audit's postcode scenario also checks the actual request: it types "EH1 1AA" and fails if anything more than `EH1` is sent.
 - **Defensive storage.** Saved settings are re-validated field by field on load, so an old or corrupted value falls back to defaults instead of crashing. The first forecast request waits for them, so a saved postcode is never preceded by a wasted national fetch.
 - **An API quirk handled.** An unknown postcode comes back as `null` with a 200 status, not an error. It gets its own message and a one-tap way back to the national forecast.
 - **Small, honest data layer.** The response is validated (`parseSlots` throws on an unexpected body instead of drawing an empty chart), and requests are aborted on unmount.
@@ -56,16 +56,17 @@ The audit serves **fixed fake forecast data** instead of calling the real API. T
 
 **The audit is itself tested.** I broke the app on purpose, one rule at a time:
 
-| Deliberate break                                                              | Caught?                                    |
-| ----------------------------------------------------------------------------- | ------------------------------------------ |
-| Spinner exposed again (the bug above)                                         | Yes, in both loading scenarios             |
-| Chart with no text alternative                                                | Yes, `role-img-alt`                        |
-| Low-contrast text in light mode                                               | Yes, only in the light scenarios           |
-| Low-contrast text in dark mode                                                | Yes, only in the dark scenarios            |
-| Low contrast **only in the error message**                                    | Yes, only in the error scenario            |
-| Postcode field with no label                                                  | Yes, `label` (critical)                    |
-| Low-contrast postcode help text                                               | Yes                                        |
-| Low contrast **only in the reminder confirmation**, which appears after a tap | Yes, only in the "reminder added" scenario |
+| Deliberate break                                                              | Caught?                                       |
+| ----------------------------------------------------------------------------- | --------------------------------------------- |
+| Spinner exposed again (the bug above)                                         | Yes, in both loading scenarios                |
+| Chart with no text alternative                                                | Yes, `role-img-alt`                           |
+| Low-contrast text in light mode                                               | Yes, only in the light scenarios              |
+| Low-contrast text in dark mode                                                | Yes, only in the dark scenarios               |
+| Low contrast **only in the error message**                                    | Yes, only in the error scenario               |
+| Postcode field with no label                                                  | Yes, `label` (critical)                       |
+| Full postcode sent to the API                                                 | Yes, by the audit's request check, not by axe |
+| Low-contrast postcode help text                                               | Yes                                           |
+| Low contrast **only in the reminder confirmation**, which appears after a tap | Yes, only in the "reminder added" scenario    |
 
 **Not tested:** VoiceOver or TalkBack on a real device, which is where a React Native app is really used. axe checks the web build only. Automated checks are a floor, not a guarantee.
 

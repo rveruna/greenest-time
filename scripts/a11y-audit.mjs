@@ -106,9 +106,18 @@ const scenarios = [
     api: respond(wavy),
     wait: ready,
     setup: async (page) => {
+      const sent = [];
+      page.on('request', (r) => {
+        if (r.url().includes('/regional/')) sent.push(decodeURIComponent(r.url()));
+      });
       await usePostcode(page, 'EH1 1AA');
       await page.waitForSelector('text=Showing South Scotland');
       await page.waitForTimeout(1200);
+      // Privacy: only the outward code may leave the device (README, "Privacy by design").
+      if (sent.length === 0) return ['privacy: no regional request was made'];
+      return sent
+        .filter((u) => !u.endsWith('/postcode/EH1') || /1AA/i.test(u))
+        .map((u) => `privacy: sent more than the outward code: ${u}`);
     },
   },
   {
@@ -179,10 +188,12 @@ for (const s of scenarios) {
   await page.goto(url);
   await page.waitForSelector(s.wait, { timeout: 15000 });
   await page.waitForTimeout(1200); // let the card entrance and the bars finish animating
-  await s.setup?.(page);
+  // A setup can return extra failures (strings) that count like axe violations.
+  const extra = (await s.setup?.(page)) ?? [];
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
-  violations += results.violations.length;
-  console.log(`${results.violations.length === 0 ? 'PASS' : 'FAIL'}  ${s.name}`);
+  violations += results.violations.length + extra.length;
+  console.log(`${results.violations.length + extra.length === 0 ? 'PASS' : 'FAIL'}  ${s.name}`);
+  for (const e of extra) console.log(`   - ${e}`);
   for (const v of results.violations) {
     console.log(
       `   - ${v.id}: ${v.help} [${v.impact}] (${v.nodes.length} element${v.nodes.length === 1 ? '' : 's'})`,
