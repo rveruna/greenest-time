@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchForecast, PostcodeNotFoundError, type Slot } from '@/lib/carbon';
+import { fetchForecast, PostcodeNotFoundError, type FuelShare, type Slot } from '@/lib/carbon';
 
 export type ForecastState =
   | { status: 'loading' }
   | { status: 'error'; message: string; notFound?: string }
-  | { status: 'ready'; slots: Slot[]; region: string; fetchedAt: Date };
+  | { status: 'ready'; slots: Slot[]; region: string; mixNow: FuelShare[] | null; fetchedAt: Date };
 
 /** Loads the forecast for an outward postcode, or nationally when `outcode` is null. Refetches when it changes. */
 export function useForecast(outcode: string | null, enabled = true) {
@@ -20,7 +20,10 @@ export function useForecast(outcode: string | null, enabled = true) {
     const now = new Date();
     fetchForecast(now, outcode, controller.signal)
       .then((f) =>
-        setResult({ key, state: { status: 'ready', slots: f.slots, region: f.region, fetchedAt: now } }),
+        setResult({
+          key,
+          state: { status: 'ready', slots: f.slots, region: f.region, mixNow: f.mixNow, fetchedAt: now },
+        }),
       )
       .catch((e: unknown) => {
         if (controller.signal.aborted) return;
