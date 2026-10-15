@@ -32,6 +32,20 @@ Built with Expo, React Native and TypeScript. Data comes from the free [Carbon I
 - **An API quirk handled.** An unknown postcode comes back as `null` with a 200 status, not an error. It gets its own message and a one-tap way back to the national forecast.
 - **Small, honest data layer.** The response is validated (`parseSlots` throws on an unexpected body instead of drawing an empty chart), and requests are aborted on unmount.
 
+## Rules
+
+What the app promises is written down in plain English, as Gherkin feature files that run with the unit tests:
+
+- [`cleanest-window.feature`](src/lib/cleanest-window.feature): the cleanest 1 to 4 hour run, ties, fitting the forecast, and "% cleaner than now"
+- [`start-and-reminder.feature`](src/lib/start-and-reminder.feature): "Now is the best time", the countdown, and the five-minute reminder and calendar alert
+- [`postcode-and-settings.feature`](src/lib/postcode-and-settings.feature): only the outward postcode is used, and saved settings fall back safely
+
+Each file is agreed behaviour, not a test. If one fails, the code is wrong; the rule is not edited to make a build pass.
+
+The steps call the same pure functions the app uses (no browser, network or rendering), through a `.steps.ts` file next to each feature. `npm test` runs them. To add a case, add a row to an `Examples` table, or a new scenario that reuses existing steps: only the `.feature` file changes. A step with no matching definition fails the run with its text. A scenario tagged `@bug` is shown as skipped, for a rule the code breaks today.
+
+**Checked by breaking it.** Making `findBestWindow` pick the dirtiest window fails 16 steps, sending ties to the latest start fails the 3 tie cases, and a 10-minute reminder fails 4.
+
 ## Accessibility
 
 `npm run a11y-audit` builds the web version and runs [axe-core](https://github.com/dequelabs/axe-core) (WCAG 2.0 to 2.2, A and AA rules) in Chromium, in 15 states: loaded (light and dark, phone and desktop, reduced motion, 4 hours selected), the best time being now, a regional forecast, a mistyped postcode, an unknown postcode, a reminder added, loading, and error. It runs in CI and fails the build on any violation. Currently 0.
