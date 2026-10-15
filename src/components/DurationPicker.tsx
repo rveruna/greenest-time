@@ -37,7 +37,8 @@ export function DurationPicker({ value, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8 },
+  // Wraps instead of clipping on very narrow screens.
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   // 44pt is the minimum comfortable touch target on iOS and Android.
   pill: {
     minHeight: 44,

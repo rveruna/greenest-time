@@ -1,6 +1,15 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { BestWindowCard } from '@/components/BestWindowCard';
 import { DurationPicker, type Duration } from '@/components/DurationPicker';
 import { ForecastChart } from '@/components/ForecastChart';
@@ -88,8 +97,24 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { padding: 20, gap: 16, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  // On web the page scrolls inside this container, not the document. `100%` heights follow the *large*
+  // viewport on mobile Chrome, so the bottom can sit under the browser toolbar. `dvh` tracks the visible
+  // area instead, and the extra bottom padding keeps the last content scrollable clear of any browser UI.
+  screen: {
+    flex: 1,
+    ...Platform.select({ web: { height: '100dvh' as unknown as number } }),
+  },
+  content: {
+    padding: 20,
+    gap: 16,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
+    paddingBottom: Platform.select({
+      web: 'calc(88px + env(safe-area-inset-bottom))' as unknown as number,
+      default: 88,
+    }),
+  },
   title: { fontSize: 34, fontWeight: '800' },
   sub: { fontSize: 16, marginTop: 4, lineHeight: 22 },
   label: { fontSize: 16, fontWeight: '700' },
