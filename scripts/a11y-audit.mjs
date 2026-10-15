@@ -24,6 +24,14 @@ const server = http.createServer((req, res) => {
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const url = `http://127.0.0.1:${server.address().port}${BASE_PATH}/`;
 
+const MIX = [
+  { fuel: 'wind', perc: 48.2 },
+  { fuel: 'gas', perc: 21.5 },
+  { fuel: 'nuclear', perc: 14.8 },
+  { fuel: 'solar', perc: 9.1 },
+  { fuel: 'imports', perc: 6.4 },
+];
+
 /** 96 half-hour slots from now, in the API's shape. `shape(i)` gives the gCO2/kWh for slot i. */
 function forecast(shape) {
   const start = new Date(Math.floor(Date.now() / 1800000) * 1800000);
@@ -38,6 +46,7 @@ function forecast(shape) {
         from: from.toISOString().slice(0, 16) + 'Z',
         to: to.toISOString().slice(0, 16) + 'Z',
         intensity: { forecast: v, actual: null, index: index(v) },
+        generationmix: MIX,
       };
     }),
   };
@@ -51,6 +60,13 @@ const respond =
   (body, region = 'South Scotland') =>
   (route) => {
     const regional = route.request().url().includes('/regional/');
+    if (route.request().url().endsWith('/generation')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { generationmix: MIX } }),
+      });
+    }
     const payload = regional
       ? { data: { regionid: 1, shortname: region, postcode: 'EH1', data: body.data } }
       : body;
