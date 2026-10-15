@@ -13,7 +13,17 @@ export interface BestWindow {
   averageNow: number;
   /** Percent cleaner than starting now. Never negative: if now is best, this is 0. */
   savingPercent: number;
+  /** The whole forecast stays within FLAT_SPREAD, so there is no cleaner time worth waiting for. */
+  flat: boolean;
+  /** Every slot in the forecast is rated "very low". */
+  cleanThroughout: boolean;
 }
+
+/**
+ * gCO2/kWh. A forecast whose highest and lowest slots are this close has no cleaner time worth waiting for:
+ * the forecast itself is less precise than that. South Scotland on a windy day is 0 for all 48 hours.
+ */
+export const FLAT_SPREAD = 10;
 
 const average = (slots: Slot[]) => slots.reduce((sum, s) => sum + s.intensity, 0) / slots.length;
 
@@ -52,6 +62,27 @@ export function findBestWindow(slots: Slot[], hours: number): BestWindow | null 
     average: Math.round(avg),
     averageNow: Math.round(avgNow),
     savingPercent: avgNow === 0 ? 0 : Math.max(0, Math.round(((avgNow - avg) / avgNow) * 100)),
+    flat: spread(slots) <= FLAT_SPREAD,
+    cleanThroughout: slots.every((s) => s.index === 'very low'),
+  };
+}
+
+const spread = (slots: Slot[]) => {
+  const values = slots.map((s) => s.intensity);
+  return Math.max(...values) - Math.min(...values);
+};
+
+/** What the result card says first: when to start, or that any time will do. */
+export function summarise(w: BestWindow, now: Date, locale?: string): { kicker: string; headline: string } {
+  if (w.flat) {
+    return {
+      kicker: 'Any time',
+      headline: w.cleanThroughout ? 'Any time is clean' : 'No cleaner time to wait for',
+    };
+  }
+  return {
+    kicker: w.start === 0 ? 'Go now' : untilLabel(w.from, now),
+    headline: describeStart(w.from, now, locale),
   };
 }
 

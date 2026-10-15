@@ -138,7 +138,8 @@ export default function App() {
             ) : (
               <Text style={{ color: t.muted }}>The forecast is too short for that duration.</Text>
             )}
-            <ForecastChart slots={state.slots} best={best} />
+            {/* A flat forecast has no window worth picking out, so the chart highlights none */}
+            <ForecastChart slots={state.slots} best={best && !best.flat ? best : null} />
             <Legend />
           </>
         )}

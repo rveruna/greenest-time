@@ -77,3 +77,17 @@ Feature: The cleanest time to run an appliance
         | 100, 100, 100, 100 | 1     | 100 | 0      |
         | 50, 50, 100, 100   | 1     | 50  | 0      |
         | 0, 0, 0, 0         | 1     | 0   | 0      |
+
+  Rule: When the whole forecast stays within 10 gCO2/kWh, the app says any time will do instead of picking a start
+
+    Scenario Outline: A forecast with nothing to wait for
+      Given the forecast from 08:00 UTC is "<forecast>"
+      When I look for the cleanest <hours>-hour window
+      Then the app says <answer>
+
+      Examples:
+        | forecast                | hours | answer               |
+        | 0, 0, 0, 0              | 1     | any time will do     |
+        | 100, 105, 110, 100      | 1     | any time will do     |
+        | 100, 111, 100, 100      | 1     | when to start        |
+        | 300, 300, 50, 50        | 1     | when to start        |
