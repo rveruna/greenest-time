@@ -54,7 +54,16 @@ export default function App() {
 
         {state.status === 'loading' && (
           <View style={styles.center} accessibilityLiveRegion="polite">
-            <ActivityIndicator color={t.accent} size="large" />
+            {/* Decorative: the text below is the announcement (it sits in a live region). Hidden on every
+                platform, because the native-only props are ignored on web, where the spinner would
+                otherwise be an unnamed progressbar. */}
+            <ActivityIndicator
+              color={t.accent}
+              size="large"
+              aria-hidden
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            />
             <Text style={{ color: t.muted }}>Loading the 48-hour forecast…</Text>
           </View>
         )}
