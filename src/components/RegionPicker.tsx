@@ -75,7 +75,11 @@ export function RegionPicker({ outcode, region, onChange }: Props) {
       )}
       <View style={styles.row}>
         <Text style={[styles.help, { color: t.muted }]}>
-          {outcode ? `Showing ${region ?? outcode} (${outcode})` : 'Showing all of Great Britain'}
+          {!outcode
+            ? 'Showing all of Great Britain'
+            : region
+              ? `Showing ${region} (${outcode})`
+              : `Loading the forecast for ${outcode}…`}
         </Text>
         {/* Only once a regional forecast has loaded. If it failed, the error box offers this instead, so the
             same control never appears twice. */}
