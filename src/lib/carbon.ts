@@ -32,9 +32,40 @@ export function parseSlots(body: unknown): Slot[] {
   }));
 }
 
-/** Half-hourly national forecast for the next 48 hours, starting from `now`. */
-export async function fetchForecast(now: Date, signal?: AbortSignal): Promise<Slot[]> {
-  const res = await fetch(`${BASE}/intensity/${formatStart(now)}/fw48h`, { signal });
+export interface Forecast {
+  slots: Slot[];
+  /** Where the forecast is for: "Great Britain", or a grid region such as "South Scotland". */
+  region: string;
+}
+
+/** The API answers an unknown postcode with a body of `null`, not an error status. */
+export class PostcodeNotFoundError extends Error {
+  constructor(public outcode: string) {
+    super(`No forecast found for ${outcode}`);
+    this.name = 'PostcodeNotFoundError';
+  }
+}
+
+export function parseRegional(body: unknown, outcode: string): Forecast {
+  const data = (body as { data?: { shortname?: string; data?: ApiSlot[] } | null } | null)?.data;
+  if (!data) throw new PostcodeNotFoundError(outcode);
+  return { slots: parseSlots({ data: data.data }), region: data.shortname ?? outcode };
+}
+
+/**
+ * Half-hourly forecast for the next 48 hours from `now`: national, or for the grid region of an outward
+ * postcode. Only the outward code is sent (see postcode.ts).
+ */
+export async function fetchForecast(
+  now: Date,
+  outcode: string | null,
+  signal?: AbortSignal,
+): Promise<Forecast> {
+  const path = outcode
+    ? `regional/intensity/${formatStart(now)}/fw48h/postcode/${encodeURIComponent(outcode)}`
+    : `intensity/${formatStart(now)}/fw48h`;
+  const res = await fetch(`${BASE}/${path}`, { signal });
   if (!res.ok) throw new Error(`The Carbon Intensity API answered ${res.status}`);
-  return parseSlots(await res.json());
+  const body = await res.json();
+  return outcode ? parseRegional(body, outcode) : { slots: parseSlots(body), region: 'Great Britain' };
 }

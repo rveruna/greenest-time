@@ -1,8 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '@/theme';
 
-export const DURATIONS = [1, 2, 3, 4] as const;
-export type Duration = (typeof DURATIONS)[number];
+import { DURATIONS, type Duration } from '@/lib/durations';
+
+export { DURATIONS, type Duration };
 
 interface Props {
   value: Duration;

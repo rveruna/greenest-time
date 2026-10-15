@@ -11,17 +11,22 @@ import {
   View,
 } from 'react-native';
 import { BestWindowCard } from '@/components/BestWindowCard';
-import { DurationPicker, type Duration } from '@/components/DurationPicker';
+import { DurationPicker } from '@/components/DurationPicker';
 import { ForecastChart } from '@/components/ForecastChart';
 import { Legend } from '@/components/Legend';
+import { RegionPicker } from '@/components/RegionPicker';
+import { ReminderButton } from '@/components/ReminderButton';
 import { useForecast } from '@/hooks/useForecast';
+import { useSettings } from '@/hooks/useSettings';
 import { findBestWindow } from '@/lib/window';
 import { useTheme } from '@/theme';
 
 export default function App() {
   const t = useTheme();
-  const { state, retry } = useForecast();
-  const [hours, setHours] = useState<Duration>(2);
+  const { settings, update, loaded } = useSettings();
+  const { hours, outcode } = settings;
+  // Waits for saved settings, so a saved postcode is used for the first request.
+  const { state, retry } = useForecast(outcode, loaded);
   const [now, setNow] = useState(() => new Date());
 
   // Keeps the "in 40 min" countdown honest without refetching.
@@ -49,8 +54,15 @@ export default function App() {
           </Text>
         </View>
 
+        <RegionPicker
+          key={outcode ?? 'national'}
+          outcode={outcode}
+          region={state.status === 'ready' ? state.region : null}
+          onChange={(code) => update({ outcode: code })}
+        />
+
         <Text style={[styles.label, { color: t.text }]}>How long does it run for?</Text>
-        <DurationPicker value={hours} onChange={setHours} />
+        <DurationPicker value={hours} onChange={(h) => update({ hours: h })} />
 
         {state.status === 'loading' && (
           <View style={styles.center} accessibilityLiveRegion="polite">
@@ -73,22 +85,56 @@ export default function App() {
             style={[styles.error, { borderColor: t.border, backgroundColor: t.surface }]}
             accessibilityRole="alert"
           >
-            <Text style={[styles.errorTitle, { color: t.text }]}>Couldn&apos;t load the forecast</Text>
-            <Text style={{ color: t.muted }}>{state.message}</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={retry}
-              style={[styles.button, { backgroundColor: t.accent }]}
-            >
-              <Text style={[styles.buttonText, { color: t.onAccent }]}>Try again</Text>
-            </Pressable>
+            <Text style={[styles.errorTitle, { color: t.text }]}>
+              {state.notFound ? `No forecast for ${state.notFound}` : 'Couldn\u2019t load the forecast'}
+            </Text>
+            <Text style={{ color: t.muted }}>
+              {state.notFound
+                ? 'Check the postcode, or use the forecast for all of Great Britain.'
+                : state.message}
+            </Text>
+            <View style={styles.buttonRow}>
+              {!state.notFound && (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={retry}
+                  style={[styles.button, { backgroundColor: t.accent }]}
+                >
+                  <Text style={[styles.buttonText, { color: t.onAccent }]}>Try again</Text>
+                </Pressable>
+              )}
+              {outcode && (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => update({ outcode: null })}
+                  style={[
+                    styles.button,
+                    state.notFound
+                      ? { backgroundColor: t.accent }
+                      : { borderWidth: 2, borderColor: t.accent, backgroundColor: 'transparent' },
+                  ]}
+                >
+                  <Text style={[styles.buttonText, { color: state.notFound ? t.onAccent : t.accent }]}>
+                    Use all of Great Britain
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           </View>
         )}
 
         {state.status === 'ready' && (
           <>
             {best ? (
-              <BestWindowCard window={best} now={now} />
+              <>
+                <BestWindowCard window={best} now={now} />
+                <ReminderButton
+                  key={`${best.start}-${best.length}-${state.region}`}
+                  window={best}
+                  now={now}
+                  region={state.region}
+                />
+              </>
             ) : (
               <Text style={{ color: t.muted }}>The forecast is too short for that duration.</Text>
             )}
@@ -98,7 +144,8 @@ export default function App() {
         )}
 
         <Text style={[styles.credit, { color: t.muted }]}>
-          Data: National Energy System Operator Carbon Intensity API (national forecast, gCO₂ per kWh).
+          Data: National Energy System Operator Carbon Intensity API (
+          {state.status === 'ready' ? state.region : 'forecast'}, gCO₂ per kWh).
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -137,6 +184,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 22,
   },
+  buttonRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   buttonText: { fontSize: 16, fontWeight: '700' },
   credit: { fontSize: 12, marginTop: 8 },
 });

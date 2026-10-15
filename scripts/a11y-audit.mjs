@@ -1,6 +1,6 @@
 // Runs axe-core (WCAG 2.0 to 2.2, A and AA rules) in a real browser against the web build, in every state
 // the screen can be in: loaded (light and dark, phone and desktop, reduced motion, each duration), the best
-// window being "now", loading, and error. The Carbon Intensity API is replaced by fixed fake data, so the
+// window being "now", a regional forecast, postcode errors, a reminder set, loading, and error. The Carbon Intensity API is replaced by fixed fake data, so the
 // audit never depends on a third-party service being up. Fails on any violation.
 // Usage: npm run a11y-audit   (builds first)
 import { chromium } from 'playwright';
@@ -46,8 +46,22 @@ const wavy = forecast((i) => 150 + 110 * Math.sin(i / 7)); // spans all five col
 const cleanestNow = forecast((i) => 40 + i * 2); // best window starts immediately
 
 const API = '**/api.carbonintensity.org.uk/**';
-const respond = (body) => (route) =>
-  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+/** Answers national requests with `body` and regional (postcode) ones with the same slots for a named region. */
+const respond =
+  (body, region = 'South Scotland') =>
+  (route) => {
+    const regional = route.request().url().includes('/regional/');
+    const payload = regional
+      ? { data: { regionid: 1, shortname: region, postcode: 'EH1', data: body.data } }
+      : body;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
+  };
+const unknownPostcode = (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: null }) });
+const usePostcode = async (page, code) => {
+  await page.getByLabel('Your postcode (optional)').fill(code);
+  await page.getByRole('button', { name: 'Use postcode' }).click();
+};
 const ready = 'text=gCO₂/kWh';
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
@@ -87,6 +101,49 @@ const scenarios = [
   },
   { name: 'best time is now', ctx: phone, api: respond(cleanestNow), wait: 'text=Now is the best time' },
   {
+    name: 'regional forecast (postcode set)',
+    ctx: phone,
+    api: respond(wavy),
+    wait: ready,
+    setup: async (page) => {
+      await usePostcode(page, 'EH1 1AA');
+      await page.waitForSelector('text=Showing South Scotland');
+      await page.waitForTimeout(1200);
+    },
+  },
+  {
+    name: 'postcode typed wrong (inline error), dark',
+    ctx: { ...phone, colorScheme: 'dark' },
+    api: respond(wavy),
+    wait: ready,
+    setup: async (page) => {
+      await usePostcode(page, 'hello');
+      await page.waitForSelector("text=doesn't look like a UK postcode");
+    },
+  },
+  {
+    name: 'unknown postcode (API has no forecast)',
+    ctx: phone,
+    api: respond(wavy),
+    wait: ready,
+    setup: async (page) => {
+      await page.unroute(API);
+      await page.route(API, unknownPostcode);
+      await usePostcode(page, 'ZZ9');
+      await page.waitForSelector('text=No forecast for ZZ9');
+    },
+  },
+  {
+    name: 'reminder added (web: calendar file), dark',
+    ctx: { ...desktop, colorScheme: 'dark' },
+    api: respond(wavy),
+    wait: ready,
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Add to calendar' }).click();
+      await page.waitForSelector('text=Calendar event downloaded');
+    },
+  },
+  {
     name: 'loading, light',
     ctx: { ...phone, colorScheme: 'light' },
     api: () => {},
@@ -116,7 +173,7 @@ const browser = await chromium.launch();
 let violations = 0;
 
 for (const s of scenarios) {
-  const context = await browser.newContext(s.ctx);
+  const context = await browser.newContext({ ...s.ctx, acceptDownloads: true });
   const page = await context.newPage();
   await page.route(API, s.api);
   await page.goto(url);
