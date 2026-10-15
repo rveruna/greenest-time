@@ -4,6 +4,8 @@
 
 **[Live demo](https://rveruna.github.io/greenest-time/)** (the web build of the same React Native code)
 
+[![The app loads the 48-hour carbon forecast, the bar chart grows in with the cleanest 2-hour window outlined, then switching to 4 hours and 1 hour moves the outline and updates the start time and saving](docs/demo.gif)](https://rveruna.github.io/greenest-time/)
+
 When is Britain's electricity cleanest? Pick how long your washing machine, dishwasher or EV charger runs for, and the app finds the cleanest window in the next 48 hours, how long to wait for it, and how much cleaner it is than starting now.
 
 Built with Expo, React Native and TypeScript. Data comes from the free [Carbon Intensity API](https://carbonintensity.org.uk/) (national forecast, no API key).
