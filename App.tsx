@@ -13,6 +13,7 @@ import {
 import { BestWindowCard } from '@/components/BestWindowCard';
 import { DurationPicker } from '@/components/DurationPicker';
 import { ForecastChart } from '@/components/ForecastChart';
+import { MixNow } from '@/components/MixNow';
 import { Legend } from '@/components/Legend';
 import { RegionPicker } from '@/components/RegionPicker';
 import { ReminderButton } from '@/components/ReminderButton';
@@ -138,6 +139,7 @@ export default function App() {
             ) : (
               <Text style={{ color: t.muted }}>The forecast is too short for that duration.</Text>
             )}
+            <MixNow mix={state.mixNow} region={state.region} />
             {/* A flat forecast has no window worth picking out, so the chart highlights none */}
             <ForecastChart slots={state.slots} best={best && !best.flat ? best : null} />
             <Legend />

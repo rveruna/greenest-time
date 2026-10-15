@@ -15,6 +15,7 @@ Built with Expo, React Native and TypeScript. Data comes from the free [Carbon I
 - Finds the cleanest run of 1 to 4 consecutive hours in a half-hourly, 48-hour forecast
 - Draws the forecast as an SVG bar chart, coloured by the API's own index, with the best window outlined
 - Shows a live countdown ("in 1 h 30 min") that updates without refetching
+- **Says why.** Shows what is generating the electricity right now ("72% wind, 24% nuclear and 4% solar") and the share from wind, solar, nuclear and hydro. When the whole forecast is flat, it says any time is clean instead of picking a start, so a region running on wind does not look like missing data
 - **Reminds you.** On a phone, a local notification five minutes before the window opens. On the web, an "Add to calendar" file with the same alert, because a closed browser tab cannot fire a scheduled notification
 - **Uses your local grid.** Enter a postcode for your region's forecast (Scotland's grid is often far cleaner than the national average). Only the first half, like EH1, is ever sent
 - **Remembers your choices.** Duration and postcode survive closing the app
@@ -36,7 +37,7 @@ Built with Expo, React Native and TypeScript. Data comes from the free [Carbon I
 
 What the app promises is written down in plain English, as Gherkin feature files that run with the unit tests:
 
-- [`cleanest-window.feature`](src/lib/cleanest-window.feature): the cleanest 1 to 4 hour run, ties, fitting the forecast, and "% cleaner than now"
+- [`cleanest-window.feature`](src/lib/cleanest-window.feature): the cleanest 1 to 4 hour run, ties, fitting the forecast, "% cleaner than now", and a flat forecast where any time will do
 - [`start-and-reminder.feature`](src/lib/start-and-reminder.feature): "Now is the best time", the countdown, and the five-minute reminder and calendar alert
 - [`postcode-and-settings.feature`](src/lib/postcode-and-settings.feature): only the outward postcode is used, and saved settings fall back safely
 
