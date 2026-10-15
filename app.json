@@ -25,6 +25,7 @@
     },
     "experiments": {
       "baseUrl": "/greenest-time"
-    }
+    },
+    "plugins": ["expo-notifications"]
   }
 }

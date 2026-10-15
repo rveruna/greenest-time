@@ -6,16 +6,19 @@
 
 [![The app loads the 48-hour carbon forecast, the bar chart grows in with the cleanest 2-hour window outlined, then switching to 4 hours and 1 hour moves the outline and updates the start time and saving](docs/demo.gif)](https://rveruna.github.io/greenest-time/)
 
-When is Britain's electricity cleanest? Pick how long your washing machine, dishwasher or EV charger runs for, and the app finds the cleanest window in the next 48 hours, how long to wait for it, and how much cleaner it is than starting now.
+When is your electricity cleanest? Pick how long your washing machine, dishwasher or EV charger runs for, and the app finds the cleanest window in the next 48 hours for your part of the grid, how long to wait for it, and how much cleaner it is than starting now. Then it reminds you when it's time.
 
-Built with Expo, React Native and TypeScript. Data comes from the free [Carbon Intensity API](https://carbonintensity.org.uk/) (national forecast, no API key).
+Built with Expo, React Native and TypeScript. Data comes from the free [Carbon Intensity API](https://carbonintensity.org.uk/) (national or regional forecast, no API key).
 
 ## What it does
 
 - Finds the cleanest run of 1 to 4 consecutive hours in a half-hourly, 48-hour forecast
 - Draws the forecast as an SVG bar chart, coloured by the API's own index, with the best window outlined
 - Shows a live countdown ("in 1 h 30 min") that updates without refetching
-- Handles loading, error (with retry) and too-short-forecast states
+- **Reminds you.** On a phone, a local notification five minutes before the window opens. On the web, an "Add to calendar" file with the same alert, because a closed browser tab cannot fire a scheduled notification
+- **Uses your local grid.** Enter a postcode for your region's forecast (Scotland's grid is often far cleaner than the national average). Only the first half, like EH1, is ever sent
+- **Remembers your choices.** Duration and postcode survive closing the app
+- Handles loading, error (with retry), unknown-postcode and too-short-forecast states
 
 ## Decisions worth a look
 
@@ -23,11 +26,15 @@ Built with Expo, React Native and TypeScript. Data comes from the free [Carbon I
 - **Colour is never the only signal.** The chart has a written legend, the card states the numbers, and the chart has a text summary for screen readers.
 - **Reduced motion is respected.** The card entrance and the bar growth both switch off with the OS setting, using Reanimated's `useReducedMotion`.
 - **Accessible controls.** The duration picker is a radio group with 44pt touch targets and an announced selected state. The result card is a live region, so a change is read out.
+- **One feature, two platforms, no pretending.** `src/reminders/` has `index.native.ts` (expo-notifications) and `index.ts` (web calendar file) behind one interface, and Metro picks the right one per platform. The web demo says "Add to calendar", not "Remind me", because that is what it can actually do.
+- **Privacy by design.** `outwardCode()` reduces any postcode to its outward half before it is stored or sent. A browser test confirms that typing "EH1 1AA" sends only `EH1`.
+- **Defensive storage.** Saved settings are re-validated field by field on load, so an old or corrupted value falls back to defaults instead of crashing. The first forecast request waits for them, so a saved postcode is never preceded by a wasted national fetch.
+- **An API quirk handled.** An unknown postcode comes back as `null` with a 200 status, not an error. It gets its own message and a one-tap way back to the national forecast.
 - **Small, honest data layer.** The response is validated (`parseSlots` throws on an unexpected body instead of drawing an empty chart), and requests are aborted on unmount.
 
 ## Accessibility
 
-`npm run a11y-audit` builds the web version and runs [axe-core](https://github.com/dequelabs/axe-core) (WCAG 2.0 to 2.2, A and AA rules) in Chromium, in 11 states: loaded (light and dark, phone and desktop, reduced motion, 4 hours selected), the best time being now, loading, and error. It runs in CI and fails the build on any violation. Currently 0.
+`npm run a11y-audit` builds the web version and runs [axe-core](https://github.com/dequelabs/axe-core) (WCAG 2.0 to 2.2, A and AA rules) in Chromium, in 15 states: loaded (light and dark, phone and desktop, reduced motion, 4 hours selected), the best time being now, a regional forecast, a mistyped postcode, an unknown postcode, a reminder added, loading, and error. It runs in CI and fails the build on any violation. Currently 0.
 
 The audit serves **fixed fake forecast data** instead of calling the real API. That keeps CI from going red when a third-party service is slow or down, and it is what makes the loading and error states testable at all: the request is held open, or failed, on purpose.
 
@@ -35,13 +42,16 @@ The audit serves **fixed fake forecast data** instead of calling the real API. T
 
 **The audit is itself tested.** I broke the app on purpose, one rule at a time:
 
-| Deliberate break                           | Caught?                          |
-| ------------------------------------------ | -------------------------------- |
-| Spinner exposed again (the bug above)      | Yes, in both loading scenarios   |
-| Chart with no text alternative             | Yes, `role-img-alt`              |
-| Low-contrast text in light mode            | Yes, only in the light scenarios |
-| Low-contrast text in dark mode             | Yes, only in the dark scenarios  |
-| Low contrast **only in the error message** | Yes, only in the error scenario  |
+| Deliberate break                                                              | Caught?                                    |
+| ----------------------------------------------------------------------------- | ------------------------------------------ |
+| Spinner exposed again (the bug above)                                         | Yes, in both loading scenarios             |
+| Chart with no text alternative                                                | Yes, `role-img-alt`                        |
+| Low-contrast text in light mode                                               | Yes, only in the light scenarios           |
+| Low-contrast text in dark mode                                                | Yes, only in the dark scenarios            |
+| Low contrast **only in the error message**                                    | Yes, only in the error scenario            |
+| Postcode field with no label                                                  | Yes, `label` (critical)                    |
+| Low-contrast postcode help text                                               | Yes                                        |
+| Low contrast **only in the reminder confirmation**, which appears after a tap | Yes, only in the "reminder added" scenario |
 
 **Not tested:** VoiceOver or TalkBack on a real device, which is where a React Native app is really used. axe checks the web build only. Automated checks are a floor, not a guarantee.
 
@@ -58,9 +68,18 @@ npm run build      # static web export to dist/
 npm run a11y-audit # builds, then runs axe in Chromium with fake API data
 ```
 
+## Testing the reminder on a phone
+
+The scheduled notification only exists on iOS and Android, so it is not in the web demo or the CI audit. To try it:
+
+1. `npm start`, then scan the QR code with Expo Go
+2. Tap **Remind me at …** and allow notifications
+3. The notification arrives five minutes before the window
+
+The scheduling logic (`reminderAt`) and the calendar file (`buildIcs`) are unit tested; the native call itself is not.
+
 ## Not done
 
-- National data only. The API also has regional forecasts by postcode, which would be the natural next step.
 - Tests cover the logic and the API parsing. There are no component tests, so the UI was checked by hand in a real browser (light, dark, reduced motion, offline) rather than by automated tests.
 - `npm audit` reports advisories in Expo's build tooling (Metro, CLI, config plugins). CI shows them but does not fail on them, because they need an Expo SDK upgrade to clear and none of that code ships in the web bundle.
-- I have run the web build. The same code targets iOS and Android through Expo, but I have not tested it on a device or simulator.
+- I have run and browser-tested the web build. The native notification has not been run on a device or simulator by me yet.
