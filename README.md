@@ -39,4 +39,5 @@ npm run build      # static web export to dist/
 
 - National data only. The API also has regional forecasts by postcode, which would be the natural next step.
 - Tests cover the logic and the API parsing. There are no component tests, so the UI was checked by hand in a real browser (light, dark, reduced motion, offline) rather than by automated tests.
+- `npm audit` reports advisories in Expo's build tooling (Metro, CLI, config plugins). CI shows them but does not fail on them, because they need an Expo SDK upgrade to clear and none of that code ships in the web bundle.
 - I have run the web build. The same code targets iOS and Android through Expo, but I have not tested it on a device or simulator.

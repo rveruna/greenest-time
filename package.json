@@ -4,11 +4,8 @@
   "main": "index.ts",
   "dependencies": {
     "@expo/metro-runtime": "~57.0.17",
-    "eslint": "^9.39.5",
-    "eslint-config-expo": "~57.0.2",
     "expo": "~57.0.29",
     "expo-status-bar": "~57.0.1",
-    "prettier": "^3.9.10",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -20,6 +17,9 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.2",
+    "prettier": "^3.9.10",
     "typescript": "~6.0.3",
     "vitest": "^3.2.7"
   },
