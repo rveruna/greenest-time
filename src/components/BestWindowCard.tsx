@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import type { BestWindow } from '@/lib/window';
-import { describeStart, untilLabel } from '@/lib/window';
+import { summarise } from '@/lib/window';
 import { useTheme } from '@/theme';
 
 interface Props {
@@ -14,7 +14,7 @@ const clock = (d: Date) => d.toLocaleTimeString(undefined, { hour: '2-digit', mi
 export function BestWindowCard({ window: w, now }: Props) {
   const t = useTheme();
   const reduced = useReducedMotion();
-  const isNow = w.start === 0;
+  const { kicker, headline } = summarise(w, now);
 
   // Keyed by the window so changing the duration replays the entrance.
   return (
@@ -24,14 +24,20 @@ export function BestWindowCard({ window: w, now }: Props) {
       style={[styles.card, { backgroundColor: t.accent }]}
       accessible
       accessibilityLiveRegion="polite"
-      accessibilityLabel={`${describeStart(w.from, now)}. Runs until ${clock(w.to)}. Average ${w.average} grams of CO2 per kilowatt hour. ${
-        w.savingPercent > 0 ? `${w.savingPercent} percent cleaner than starting now.` : ''
-      }`}
+      accessibilityLabel={
+        w.flat
+          ? `${headline}. About ${w.average} grams of CO2 per kilowatt hour for the whole forecast, so there is no cleaner time to wait for.`
+          : `${headline}. Runs until ${clock(w.to)}. Average ${w.average} grams of CO2 per kilowatt hour. ${
+              w.savingPercent > 0 ? `${w.savingPercent} percent cleaner than starting now.` : ''
+            }`
+      }
     >
-      <Text style={[styles.kicker, { color: t.onAccent }]}>{isNow ? 'Go now' : untilLabel(w.from, now)}</Text>
-      <Text style={[styles.headline, { color: t.onAccent }]}>{describeStart(w.from, now)}</Text>
+      <Text style={[styles.kicker, { color: t.onAccent }]}>{kicker}</Text>
+      <Text style={[styles.headline, { color: t.onAccent }]}>{headline}</Text>
       <Text style={[styles.detail, { color: t.onAccent }]}>
-        {clock(w.from)} to {clock(w.to)} · {w.average} gCO₂/kWh
+        {w.flat
+          ? `About ${w.average} gCO₂/kWh for the whole forecast`
+          : `${clock(w.from)} to ${clock(w.to)} · ${w.average} gCO₂/kWh`}
       </Text>
       {w.savingPercent > 0 && (
         <View style={[styles.badge, { backgroundColor: t.onAccent }]}>

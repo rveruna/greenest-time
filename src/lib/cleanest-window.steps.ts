@@ -39,6 +39,10 @@ runRules<World>(await loadFeature('./cleanest-window.feature'), () => ({ slots: 
     },
   ],
   [/there is no window/, (w) => expect(w.window).toBeNull()],
+  [
+    /the app says (any time will do|when to start)/,
+    (w, answer) => expect(w.window?.flat).toBe(answer === 'any time will do'),
+  ],
   [/it averages (\d+) gCO2\/kWh/, (w, avg) => expect(w.window?.average).toBe(Number(avg))],
   [/starting now averages (\d+) gCO2\/kWh/, (w, avg) => expect(w.window?.averageNow).toBe(Number(avg))],
   [
